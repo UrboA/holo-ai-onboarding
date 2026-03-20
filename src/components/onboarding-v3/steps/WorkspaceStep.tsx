@@ -18,6 +18,7 @@ interface WorkspaceStepProps {
   onConnect: (id: string) => void;
   onResume: () => void;
   onBack: () => void;
+  onStartStudio: (action: string) => void;
 }
 
 /* ─── Constants ─── */
@@ -284,6 +285,7 @@ export function WorkspaceStep({
   onConnect,
   onResume,
   onBack,
+  onStartStudio,
 }: WorkspaceStepProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const latestPanel = visible.length > 0 ? visible[visible.length - 1].panel : undefined;
@@ -367,7 +369,7 @@ export function WorkspaceStep({
                     )}
 
                     {/* Inline: quick actions after final message */}
-                    {msg.id === "ready" && <QuickActions />}
+                    {msg.id === "ready" && <QuickActions onPick={onStartStudio} />}
                   </div>
                 </div>
               </motion.div>
@@ -499,7 +501,7 @@ function InlineConnect({
 
 /* ─── Quick Actions (after chat completes) ─── */
 
-function QuickActions() {
+function QuickActions({ onPick }: { onPick: (action: string) => void }) {
   return (
     <motion.div
       className="mt-3 space-y-2"
@@ -512,6 +514,7 @@ function QuickActions() {
         {QUICK_ACTIONS.map((a) => (
           <motion.button
             key={a.label}
+            onClick={() => onPick(a.label)}
             className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#E6E6E7] bg-white text-xs font-medium text-[#1D1D1F] hover:border-[#3E86C6]/40 hover:bg-[#3E86C6]/[0.02] transition-all cursor-pointer text-left"
             whileHover={{ y: -1 }}
             whileTap={{ scale: 0.98 }}
@@ -521,14 +524,6 @@ function QuickActions() {
           </motion.button>
         ))}
       </div>
-      <motion.button
-        className="w-full h-11 rounded-full text-sm font-bold text-white cursor-pointer mt-2"
-        style={{ background: "var(--gradient-brand)", boxShadow: "0px 5px 15px rgba(62,134,198,0.2), inset -2px 2px 10px rgba(255,255,255,0.3)" }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        Go to Dashboard →
-      </motion.button>
     </motion.div>
   );
 }
