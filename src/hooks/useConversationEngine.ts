@@ -9,7 +9,7 @@ export interface Msg {
   role: "ai" | "user";
   text: string;
   /** Inline widget to render inside this message bubble */
-  widget?: "brand-card" | "competitor-summary" | "ad-thumbs" | "connect-accounts" | "creative-thumbs" | "campaign-summary";
+  widget?: "brand-card" | "competitor-summary" | "ad-thumbs" | "connect-accounts" | "creative-thumbs" | "campaign-summary" | "url-input";
   /** What the right-side canvas should show when this message is the latest AI msg */
   canvas?: string;
   pills?: string[];
@@ -22,6 +22,7 @@ export interface Msg {
 type Phase =
   | "greeting"
   | "waiting-url"
+  | "waiting-describe"
   | "scanning"
   | "brand-found"
   | "competitors"
@@ -309,24 +310,24 @@ export function useConversationEngine() {
       // Phase-specific handling
       switch (phase) {
         case "greeting":
-        case "waiting-url":
-          if (trimmed.toLowerCase().includes("describe") || trimmed.toLowerCase().includes("no website")) {
+          if (trimmed.toLowerCase().includes("describe") || trimmed.toLowerCase().includes("no website") || trimmed.toLowerCase().includes("don't have")) {
             enqueue([
               {
                 id: "describe-prompt",
                 role: "ai",
-                text: "Cool! What's your brand name and what do you sell?",
+                text: "Cool! Tell me your brand name and what you sell. I'll build your workspace from that.",
                 pauseAfter: true,
                 pillTimeout: 0,
               },
             ]);
-            setPhase("waiting-url");
+            setPhase("waiting-describe");
           } else {
             enqueue([
               {
-                id: "guide-back",
+                id: "url-prompt",
                 role: "ai",
-                text: "Sounds great! Got a website I can scan? That's the fastest way to get started. Just paste the URL.",
+                text: "I'd love to help! Got a website I can scan? Paste the URL here:",
+                widget: "url-input",
                 pauseAfter: true,
                 pillTimeout: 0,
               },
@@ -335,6 +336,29 @@ export function useConversationEngine() {
           }
           resume();
           break;
+
+        case "waiting-url":
+          enqueue([
+            {
+              id: "url-nudge",
+              role: "ai",
+              text: "Just paste your website URL (like yoursite.com) and I'll take it from there!",
+              widget: "url-input",
+              pauseAfter: true,
+              pillTimeout: 0,
+            },
+          ]);
+          resume();
+          break;
+
+        case "waiting-describe": {
+          const brandName = trimmed.split(/[,.\-—]|\band\b|\bsell\b|\bwe\b/i)[0].trim().slice(0, 30) || "Your Brand";
+          setBrandUrl(brandName);
+          setPhase("scanning");
+          enqueue(buildScanSequence(brandName));
+          resume();
+          break;
+        }
 
         case "brand-found":
           resume();
@@ -394,6 +418,16 @@ export function useConversationEngine() {
       const lower = pill.toLowerCase();
 
       if (lower === "i have a website") {
+        enqueue([
+          {
+            id: "url-prompt",
+            role: "ai",
+            text: "Great! Paste your URL right here:",
+            widget: "url-input",
+            pauseAfter: true,
+            pillTimeout: 0,
+          },
+        ]);
         setPhase("waiting-url");
         resume();
         return;
@@ -404,12 +438,12 @@ export function useConversationEngine() {
           {
             id: "describe-prompt",
             role: "ai",
-            text: "Cool! What's your brand name and what do you sell?",
+            text: "Cool! Tell me your brand name and what you sell. I'll build your workspace from that.",
             pauseAfter: true,
             pillTimeout: 0,
           },
         ]);
-        setPhase("waiting-url");
+        setPhase("waiting-describe");
         resume();
         return;
       }

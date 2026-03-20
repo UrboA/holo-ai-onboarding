@@ -16,6 +16,7 @@ export function OnboardingV4() {
           typing={engine.typing}
           activePills={engine.activePills}
           connected={engine.connected}
+          phase={engine.phase}
           onSend={engine.userSend}
           onPill={engine.pillClick}
           onConnect={engine.connectAccount}

@@ -140,14 +140,61 @@ function CampaignSummaryInline() {
   );
 }
 
+function UrlInputInline({ onSubmit }: { onSubmit: (url: string) => void }) {
+  const [value, setValue] = useState("");
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  function isValid(s: string) {
+    return /^(https?:\/\/)?[\w.-]+\.\w{2,}/.test(s.trim());
+  }
+
+  function handle() {
+    if (!isValid(value)) return;
+    onSubmit(value.trim());
+  }
+
+  return (
+    <motion.div
+      className="mt-2 flex gap-2 max-w-sm"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <input
+        ref={ref}
+        type="url"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handle()}
+        placeholder="yoursite.com"
+        className="flex-1 h-10 px-4 rounded-xl bg-white border border-[#E6E6E7] text-[13px] text-[#1D1D1F] placeholder:text-[#C7C7CC] outline-none focus:border-[#3E86C6] focus:ring-2 focus:ring-[#3E86C6]/10 transition-all"
+      />
+      <motion.button
+        onClick={handle}
+        disabled={!isValid(value)}
+        className="h-10 px-4 rounded-xl text-[12px] font-bold text-white cursor-pointer disabled:opacity-30 disabled:cursor-default"
+        style={{ background: "var(--gradient-brand)" }}
+        whileTap={isValid(value) ? { scale: 0.95 } : {}}
+      >
+        Go →
+      </motion.button>
+    </motion.div>
+  );
+}
+
 function InlineWidget({
   widget,
   connected,
   onConnect,
+  onSendUrl,
 }: {
   widget: Msg["widget"];
   connected: string[];
   onConnect: (id: string) => void;
+  onSendUrl: (url: string) => void;
 }) {
   switch (widget) {
     case "brand-card": return <BrandCardInline />;
@@ -156,6 +203,7 @@ function InlineWidget({
     case "connect-accounts": return <ConnectAccountsInline connected={connected} onConnect={onConnect} />;
     case "creative-thumbs": return <CreativeThumbsInline />;
     case "campaign-summary": return <CampaignSummaryInline />;
+    case "url-input": return <UrlInputInline onSubmit={onSendUrl} />;
     default: return null;
   }
 }
@@ -167,6 +215,7 @@ interface ChatPanelProps {
   typing: boolean;
   activePills: string[];
   connected: string[];
+  phase: string;
   onSend: (text: string) => void;
   onPill: (pill: string) => void;
   onConnect: (id: string) => void;
@@ -177,6 +226,7 @@ export function ChatPanel({
   typing,
   activePills,
   connected,
+  phase,
   onSend,
   onPill,
   onConnect,
@@ -225,7 +275,7 @@ export function ChatPanel({
                   <div>
                     <p className="text-[13px] text-[#1D1D1F] leading-relaxed">{msg.text}</p>
                     {msg.widget && (
-                      <InlineWidget widget={msg.widget} connected={connected} onConnect={onConnect} />
+                      <InlineWidget widget={msg.widget} connected={connected} onConnect={onConnect} onSendUrl={onSend} />
                     )}
                   </div>
                 </div>
@@ -287,7 +337,15 @@ export function ChatPanel({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Type a message or paste a URL..."
+            placeholder={
+              phase === "waiting-url"
+                ? "Paste your website URL here..."
+                : phase === "waiting-describe"
+                  ? "e.g. FreshFit - we sell organic protein bars..."
+                  : phase === "done"
+                    ? "Ask me anything about your brand..."
+                    : "Type a message or paste a URL..."
+            }
             autoFocus
             className="flex-1 h-10 px-4 rounded-full bg-[#F7F7F7] border border-[#E6E6E7] text-[13px] text-[#1D1D1F] placeholder:text-[#C7C7CC] outline-none focus:border-[#3E86C6] focus:ring-2 focus:ring-[#3E86C6]/10 transition-all"
           />
