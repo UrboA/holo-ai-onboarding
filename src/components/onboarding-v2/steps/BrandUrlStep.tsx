@@ -151,7 +151,7 @@ export function BrandUrlStep({ defaultValue, onContinue }: BrandUrlStepProps) {
                 whileHover={valid ? { scale: 1.02 } : {}}
                 whileTap={valid ? { scale: 0.98 } : {}}
               >
-                Continue
+                Go
               </motion.button>
             </motion.div>
           )}

@@ -4,10 +4,8 @@ import { useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboardingFlowV2 } from "@/hooks/useOnboardingFlowV2";
 import { BrandUrlStep } from "./steps/BrandUrlStep";
-import { GoalsStep } from "./steps/GoalsStep";
-import { ContextStep } from "./steps/ContextStep";
+import { IntentPickStep } from "./steps/IntentPickStep";
 import { AnalysisChatStep } from "./steps/AnalysisChatStep";
-import { ResultsStep } from "./steps/ResultsStep";
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -32,12 +30,12 @@ export function OnboardingWizardV2() {
   }, [flow.startChat]);
 
   useEffect(() => {
-    if (flow.step === "analysis") {
+    if (flow.step === "chat") {
       handleAnalysisStart();
     }
   }, [flow.step, handleAnalysisStart]);
 
-  const isFullScreen = flow.step === "analysis";
+  const isChat = flow.step === "chat";
 
   function renderStep() {
     switch (flow.step) {
@@ -51,63 +49,30 @@ export function OnboardingWizardV2() {
             }}
           />
         );
-      case "goals":
+      case "intent":
         return (
-          <GoalsStep
-            defaultGoals={flow.data.goals}
-            defaultChallenge={flow.data.challenge}
-            defaultCampaignMode={flow.data.campaignMode}
-            onContinue={(goals, challenge, campaignMode) => {
-              flow.updateData({ goals, challenge, campaignMode });
+          <IntentPickStep
+            onSelect={(intent) => {
+              flow.updateData({ intent });
               flow.next();
             }}
             onBack={flow.back}
           />
         );
-      case "context":
-        return (
-          <ContextStep
-            campaignMode={flow.data.campaignMode}
-            defaults={{
-              targetAudience: flow.data.targetAudience,
-              platforms: flow.data.platforms,
-              contentVolume: flow.data.contentVolume,
-              campaignObjective: flow.data.campaignObjective,
-              adBudget: flow.data.adBudget,
-              campaignTimeline: flow.data.campaignTimeline,
-            }}
-            onContinue={(d) => {
-              flow.updateData(d);
-              flow.next();
-            }}
-            onBack={flow.back}
-          />
-        );
-      case "analysis":
+      case "chat":
         return (
           <AnalysisChatStep
             visibleMessages={flow.visibleMessages}
             isTyping={flow.isTyping}
             chatComplete={flow.chatComplete}
+            chatPaused={flow.chatPaused}
             completedLabels={flow.completedLabels}
             totalSteps={flow.totalChatSteps}
-            campaignMode={flow.data.campaignMode}
+            intent={flow.data.intent}
             brandUrl={flow.data.brandUrl}
-            data={{
-              platforms: flow.data.platforms,
-              campaignObjective: flow.data.campaignObjective,
-              adBudget: flow.data.adBudget,
-              campaignTimeline: flow.data.campaignTimeline,
-              targetAudience: flow.data.targetAudience,
-            }}
-            onFinish={flow.next}
-            onBack={flow.back}
-          />
-        );
-      case "results":
-        return (
-          <ResultsStep
-            campaignMode={flow.data.campaignMode}
+            connectedAccounts={flow.connectedAccounts}
+            onConnectAccount={flow.connectAccount}
+            onResumeChat={flow.resumeChat}
             onBack={flow.back}
           />
         );
@@ -120,11 +85,11 @@ export function OnboardingWizardV2() {
     <div className="bg-white flex items-start justify-center p-5 w-full h-screen">
       <div
         className={`bg-[#FBFBFB] flex flex-col w-full h-full overflow-hidden relative rounded-[20px] ${
-          isFullScreen ? "" : "max-w-[1240px]"
+          isChat ? "" : "max-w-[1240px]"
         }`}
       >
-        {/* Subtle decorative blobs (not on analysis/results) */}
-        {!isFullScreen && flow.step !== "results" && (
+        {/* Decorative blobs (only on form steps) */}
+        {!isChat && (
           <>
             <div
               className="absolute -right-72 -top-56 w-[1100px] h-[680px] rotate-[102deg] opacity-60 pointer-events-none"
@@ -143,16 +108,14 @@ export function OnboardingWizardV2() {
           </>
         )}
 
-        {/* Step indicator dots (not on analysis) */}
-        {!isFullScreen && flow.step !== "results" && (
+        {/* Step indicator dots (only on form steps) */}
+        {!isChat && (
           <div className="relative z-10 flex items-center justify-center gap-2 pt-6 pb-2">
-            {["brand-url", "goals", "context"].map((s, i) => (
+            {["brand-url", "intent"].map((s, i) => (
               <div
                 key={s}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i <= flow.stepIndex
-                    ? "w-8"
-                    : "w-1.5"
+                  i <= flow.stepIndex ? "w-8" : "w-1.5"
                 }`}
                 style={
                   i <= flow.stepIndex
@@ -170,10 +133,10 @@ export function OnboardingWizardV2() {
             <motion.div
               key={flow.step}
               custom={flow.direction}
-              variants={isFullScreen ? undefined : slideVariants}
-              initial={isFullScreen ? { opacity: 0 } : "enter"}
-              animate={isFullScreen ? { opacity: 1 } : "center"}
-              exit={isFullScreen ? { opacity: 0 } : "exit"}
+              variants={isChat ? undefined : slideVariants}
+              initial={isChat ? { opacity: 0 } : "enter"}
+              animate={isChat ? { opacity: 1 } : "center"}
+              exit={isChat ? { opacity: 0 } : "exit"}
               transition={{
                 type: "spring",
                 stiffness: 300,
